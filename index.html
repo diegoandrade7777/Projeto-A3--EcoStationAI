@@ -75,11 +75,58 @@
             
             <!-- Logotipo e Subtítulo -->
             <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('totem')">
-                <div class="w-11 h-11 rounded-xl overflow-hidden bg-[#10181f] border border-[#b5cca9] flex items-center justify-center shrink-0 shadow-xs">
-                    <img src="303257.jpg" alt="EcoStation AI" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                    <div class="hidden w-9 h-9 rounded-full bg-[#217329] text-white items-center justify-center">
-                        <i class="fa-solid fa-recycle text-base"></i>
-                    </div>
+                <div class="w-11 h-11 flex items-center justify-center shrink-0">
+                    <!-- Emblema Oficial EcoStation AI (Fundo transparente, folhas verdes + circuitos azuis + lixeira central) -->
+                    <svg viewBox="0 0 120 120" class="w-11 h-11 drop-shadow-xs" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="ecoGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#84cc16"/>
+                                <stop offset="100%" stop-color="#15803d"/>
+                            </linearGradient>
+                            <linearGradient id="ecoBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#38bdf8"/>
+                                <stop offset="100%" stop-color="#0369a1"/>
+                            </linearGradient>
+                        </defs>
+                        <!-- Circuito Superior Esquerdo (Azul + Trilhas Verdes) -->
+                        <path d="M26 42 C26 24, 42 14, 56 18 L48 36 L34 46 Z" fill="url(#ecoBlue)"/>
+                        <path d="M35 22 L35 34 M42 19 L42 32 M49 21 L49 30" stroke="#e6efe2" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M24 34 L14 34 L14 24 M22 42 L10 42" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                        <circle cx="14" cy="22" r="3" fill="#16a34a"/>
+                        <circle cx="10" cy="42" r="3" fill="#16a34a"/>
+                        <path d="M36 46 L40 56" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round"/>
+
+                        <!-- Seta Folha Superior Direita (Verde) -->
+                        <path d="M54 12 C76 10, 92 22, 96 38 L104 34 L92 52 L72 44 L80 40 C76 28, 66 22, 52 22 Z" fill="url(#ecoGreen)"/>
+                        <path d="M64 18 C75 22, 83 29, 88 41" stroke="#dcfce7" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+
+                        <!-- Circuito Inferior Direito (Azul) -->
+                        <path d="M98 54 C104 68, 98 84, 86 92 L76 74 L86 58 Z" fill="url(#ecoBlue)"/>
+                        <path d="M91 64 L85 76 M96 68 L90 80" stroke="#e6efe2" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M98 62 L110 62 L110 52 M100 72 L112 72" stroke="#0284c7" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                        <circle cx="110" cy="50" r="3" fill="#0284c7"/>
+                        <circle cx="112" cy="72" r="3" fill="#0284c7"/>
+
+                        <!-- Seta Inferior (Azul Ciano) -->
+                        <path d="M88 96 C74 108, 56 110, 42 102 L38 110 L28 90 L48 84 L44 92 C56 97, 68 95, 78 86 Z" fill="url(#ecoBlue)"/>
+
+                        <!-- Seta Folha Inferior Esquerda (Verde) -->
+                        <path d="M24 92 C12 78, 10 58, 18 44 L10 40 L30 34 L36 54 L28 50 C22 62, 24 74, 34 84 Z" fill="url(#ecoGreen)"/>
+                        <path d="M22 76 C19 64, 21 53, 27 43" stroke="#dcfce7" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+
+                        <!-- Lixeira Central Bicolor (Verde e Azul) -->
+                        <g transform="translate(43, 40)">
+                            <!-- Tampa -->
+                            <path d="M4 6 L8 1 L17 1 L17 6 Z" fill="#65a30d"/>
+                            <path d="M17 1 L26 1 L30 6 L17 6 Z" fill="#0284c7"/>
+                            <rect x="2" y="6" width="30" height="3.5" rx="1.5" fill="#cbd5e1"/>
+                            <!-- Corpo -->
+                            <path d="M4 10.5 L17 10.5 L17 38 L7 38 Z" fill="url(#ecoGreen)"/>
+                            <path d="M17 10.5 L30 10.5 L27 38 L17 38 Z" fill="url(#ecoBlue)"/>
+                            <!-- Símbolo Reciclagem Branco na Lixeira -->
+                            <path d="M17 17 L21 23 L13 23 Z" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"/>
+                        </g>
+                    </svg>
                 </div>
                 <div>
                     <h1 class="font-serif-editorial text-lg font-bold leading-tight text-[#1a2e1a]">
