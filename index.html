@@ -75,8 +75,8 @@
             
             <!-- Logotipo e Subtítulo -->
             <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('totem')">
-                <div class="w-10 h-10 flex items-center justify-center shrink-0">
-                    <img src="logo.png" alt="EcoStation AI" class="w-full h-full object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="w-11 h-11 rounded-xl overflow-hidden bg-[#10181f] border border-[#b5cca9] flex items-center justify-center shrink-0 shadow-xs">
+                    <img src="303257.jpg" alt="EcoStation AI" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                     <div class="hidden w-9 h-9 rounded-full bg-[#217329] text-white items-center justify-center">
                         <i class="fa-solid fa-recycle text-base"></i>
                     </div>
@@ -203,7 +203,7 @@
                     </button>
                 </div>
 
-                <!-- Gaveta de Cenários Simulados (Igual à Imagem 2) -->
+                <!-- Gaveta de Cenários Simulados -->
                 <div id="demo-scenarios-tray" class="hidden space-y-2 pt-1">
                     <p class="text-[11px] text-[#556b52]">Cenários simulados, sem depender de objeto na mão:</p>
                     <div class="flex flex-wrap gap-2">
@@ -219,7 +219,7 @@
                     </div>
                 </div>
 
-                <!-- Cartão de Resultado da Triagem (Igual à Imagem 2) -->
+                <!-- Cartão de Resultado da Triagem -->
                 <div id="ai-result-box" class="hidden eco-subcard p-4 border border-[#9eb894] transition-all">
                     <div class="flex items-start justify-between gap-4">
                         <div>
@@ -430,7 +430,7 @@
     <!-- ===================================================================== -->
     <main id="tab-view-admin" class="hidden flex-grow max-w-6xl w-full mx-auto px-4 sm:px-6 py-6">
 
-        <!-- TELA DE LOGIN RESTRITO (IGUAL À IMAGEM 4) -->
+        <!-- TELA DE LOGIN RESTRITO -->
         <div id="admin-login-box" class="min-h-[65vh] flex items-center justify-center">
             <div class="eco-card max-w-sm w-full p-6 shadow-sm space-y-4">
                 <div>
@@ -450,7 +450,7 @@
             </div>
         </div>
 
-        <!-- PAINEL COMPLETO DOS GESTORES (IGUAL ÀS IMAGENS 5 E 6) -->
+        <!-- PAINEL COMPLETO DOS GESTORES -->
         <div id="admin-dashboard-content" class="hidden space-y-6">
 
             <!-- Banner Alerta IoT (Quando Totem 01 >= 70%) -->
@@ -641,7 +641,7 @@
 
     <script>
         // =========================================================================
-        // ESTADO E DADOS INICIAIS (REPRODUZINDO FIELMENTE O CENÁRIO DO LAYOUT)
+        // ESTADO E DADOS INICIAIS
         // =========================================================================
         let soundEnabled = true;
         let presenceActive = false;
@@ -1119,7 +1119,7 @@ Responda APENAS em JSON válido:
                 return;
             }
 
-            const weightAdded = 25; // 25g por embalagem
+            const weightAdded = 25;
             const matKey = materialsConfig[data.materialCategory] ? data.materialCategory : "Plástico";
             materialsConfig[matKey].weightG += weightAdded;
             u.discards += 1;
@@ -1176,7 +1176,6 @@ Responda APENAS em JSON válido:
             document.getElementById('esg-lavaseca-items').textContent = stats.lavaSecaCount;
             document.getElementById('esg-co2-weight').textContent = `${totalCO2G} g`;
 
-            // Resumo do Usuário Atual (ou Yago como padrão se deslogado)
             const activeId = currentUser ? currentUser.id : "12526147772";
             const u = usersDB[activeId];
 
@@ -1193,7 +1192,6 @@ Responda APENAS em JSON válido:
                 : `Você já atingiu pontos suficientes para resgatar Crédito transporte (R$ 5,00)!`;
             document.getElementById('esg-next-reward-bar').style.width = `${pct}%`;
 
-            // Histórico
             const histList = document.getElementById('esg-history-list');
             if (u.history.length === 0) {
                 histList.innerHTML = `<p class="py-3 text-xs text-[#556b52]">Nenhum descarte recente registrado nesta sessão.</p>`;
@@ -1209,7 +1207,6 @@ Responda APENAS em JSON válido:
                 `).join('');
             }
 
-            // Ranking Ordenado
             const sortedUsers = Object.entries(usersDB).sort((a, b) => b[1].points - a[1].points);
             const rankList = document.getElementById('esg-ranking-list');
             rankList.innerHTML = sortedUsers.map(([id, user], idx) => `
@@ -1303,7 +1300,6 @@ Responda APENAS em JSON válido:
             document.getElementById('mgr-iot-status').textContent = stats.totem01Percent >= 70 ? "Coleta recomendada" : "Operação normal";
             document.getElementById('mgr-total-points').textContent = totalPoints;
 
-            // Alerta IoT Banner
             const banner = document.getElementById('admin-iot-banner');
             if (stats.totem01Percent >= 70) {
                 banner.classList.remove('hidden');
@@ -1312,7 +1308,6 @@ Responda APENAS em JSON válido:
                 banner.classList.add('hidden');
             }
 
-            // Lista de Lixeiras da Cidade
             const binsList = document.getElementById('city-bins-list');
             const allBins = [
                 { name: "Totem 01 (EcoStation)", tag: "ao vivo", percent: stats.totem01Percent, isReal: true },
@@ -1342,7 +1337,6 @@ Responda APENAS em JSON válido:
                 `;
             }).join('');
 
-            // Receita por Material
             const matTable = document.getElementById('material-revenue-table');
             let rowsHtml = Object.entries(materialsConfig).map(([mat, data]) => {
                 const val = (data.weightG / 1000) * data.priceKg;
@@ -1366,7 +1360,6 @@ Responda APENAS em JSON válido:
             `;
             matTable.innerHTML = rowsHtml;
 
-            // Cidadãos Cadastrados
             const usersTable = document.getElementById('mgr-users-table');
             usersTable.innerHTML = Object.entries(usersDB).map(([id, u]) => `
                 <tr>
@@ -1377,7 +1370,6 @@ Responda APENAS em JSON válido:
                 </tr>
             `).join('');
 
-            // Destino dos Resíduos
             const totalEvents = Math.max(1, stats.cleanCount + stats.lavaSecaCount + stats.blockedCount);
             document.getElementById('dest-clean-count').textContent = stats.cleanCount;
             document.getElementById('dest-lavaseca-count').textContent = stats.lavaSecaCount;
@@ -1387,7 +1379,6 @@ Responda APENAS em JSON válido:
             document.getElementById('bar-lavaseca').style.width = `${(stats.lavaSecaCount / totalEvents) * 100}%`;
             document.getElementById('bar-blocked').style.width = `${(stats.blockedCount / totalEvents) * 100}%`;
 
-            // Telemetria
             const telList = document.getElementById('mgr-telemetry-list');
             telList.innerHTML = stats.telemetry.map(item => `
                 <div class="py-2.5 leading-relaxed">${item}</div>
