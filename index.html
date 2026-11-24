@@ -1,1 +1,1418 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoStation AI — Triagem inteligente de resíduos</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter, Merriweather (Serif Editorial) & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Merriweather:wght@700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Tone.js para Efeitos Sonoros sem arquivos externos -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #c1d8b8; /* Verde sálvia suave do layout */
+            color: #1a2e1a;
+        }
+        .font-serif-editorial {
+            font-family: 'Merriweather', serif;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .eco-card {
+            background-color: #e6efe2;
+            border: 1px solid #b5cca9;
+            border-radius: 16px;
+        }
+        .eco-subcard {
+            background-color: #edf4ea;
+            border: 1px solid #c2d6b8;
+            border-radius: 12px;
+        }
+        .eco-input {
+            background-color: #edf4ea;
+            border: 1px solid #b5cca9;
+            color: #1a2e1a;
+        }
+        .eco-input:focus {
+            outline: none;
+            border-color: #217329;
+            background-color: #f4f9f2;
+        }
+        .keypad-btn {
+            background-color: #edf4ea;
+            border: 1px solid #b5cca9;
+            color: #1a2e1a;
+            transition: all 0.12s ease;
+        }
+        .keypad-btn:hover {
+            background-color: #dce9d6;
+        }
+        .keypad-btn:active {
+            transform: scale(0.96);
+        }
+        @keyframes scanPulse {
+            0%, 100% { opacity: 0.35; }
+            50% { opacity: 0.9; }
+        }
+        .scan-frame {
+            animation: scanPulse 2.5s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-emerald-700 selection:text-white">
 
+    <!-- ===================================================================== -->
+    <!-- BARRA DE NAVEGAÇÃO SUPERIOR                                           -->
+    <!-- ===================================================================== -->
+    <header class="bg-[#e6efe2] border-b border-[#b5cca9] sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-8 h-16 flex items-center justify-between gap-4">
+            
+            <!-- Logotipo e Subtítulo -->
+            <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('totem')">
+                <div class="w-10 h-10 flex items-center justify-center shrink-0">
+                    <img src="logo.png" alt="EcoStation AI" class="w-full h-full object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="hidden w-9 h-9 rounded-full bg-[#217329] text-white items-center justify-center">
+                        <i class="fa-solid fa-recycle text-base"></i>
+                    </div>
+                </div>
+                <div>
+                    <h1 class="font-serif-editorial text-lg font-bold leading-tight text-[#1a2e1a]">
+                        EcoStation <span class="text-[#217329]">AI</span>
+                    </h1>
+                    <p class="text-[11px] text-[#556b52]">Triagem inteligente de resíduos</p>
+                </div>
+            </div>
+
+            <!-- Menu Central de 3 Abas -->
+            <nav class="flex items-center gap-2 sm:gap-6 h-full">
+                <button id="nav-totem" onclick="switchTab('totem')" class="h-full px-3 text-xs sm:text-sm font-semibold text-[#1a2e1a] border-b-2 border-[#217329] transition cursor-pointer">
+                    Totem
+                </button>
+                <button id="nav-esg" onclick="switchTab('esg')" class="h-full px-3 text-xs sm:text-sm font-medium text-[#556b52] hover:text-[#1a2e1a] border-b-2 border-transparent transition cursor-pointer">
+                    Gestão e ESG
+                </button>
+                <button id="nav-admin" onclick="switchTab('admin')" class="h-full px-3 text-xs sm:text-sm font-medium text-[#556b52] hover:text-[#1a2e1a] border-b-2 border-transparent transition cursor-pointer">
+                    Área dos gestores
+                </button>
+            </nav>
+
+            <!-- Controles de Som e Status IA -->
+            <div class="hidden md:flex items-center gap-2.5 text-xs">
+                <button onclick="toggleSound()" id="btn-sound" class="px-3.5 py-1.5 rounded-full border border-[#b5cca9] bg-[#edf4ea] hover:bg-[#dce9d6] text-[#1a2e1a] font-medium transition cursor-pointer">
+                    <span id="sound-label">Som ligado</span>
+                </button>
+                <div id="ia-status-pill" class="px-3.5 py-1.5 rounded-full border border-[#b5cca9] bg-[#edf4ea] text-[#556b52] font-medium flex items-center gap-2">
+                    <span id="ia-status-dot" class="w-2 h-2 rounded-full bg-amber-600"></span>
+                    <span id="ia-status-text">IA modo local</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===================================================================== -->
+    <!-- ABA 1: TOTEM (CÂMERA DE TRIAGEM ÓPTICA + IDENTIFICAÇÃO CIDADÃO)       -->
+    <!-- ===================================================================== -->
+    <main id="tab-view-totem" class="flex-grow max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+        <!-- Stepper Horizontal de 3 Passos -->
+        <div class="grid grid-cols-3 gap-4 sm:gap-6">
+            <div id="step-1-box" class="border-t-2 border-[#217329] pt-2.5 transition-all">
+                <p id="step-1-title" class="text-xs sm:text-sm font-bold text-[#1a2e1a]">1. Identificação</p>
+                <p class="text-[11px] sm:text-xs text-[#556b52]">Informe seu ID ou RA</p>
+            </div>
+            <div id="step-2-box" class="border-t-2 border-[#9eb894] pt-2.5 transition-all">
+                <p id="step-2-title" class="text-xs sm:text-sm font-semibold text-[#556b52]">2. Apresente o resíduo</p>
+                <p class="text-[11px] sm:text-xs text-[#556b52]">Segure-o diante da câmera</p>
+            </div>
+            <div id="step-3-box" class="border-t-2 border-[#9eb894] pt-2.5 transition-all">
+                <p id="step-3-title" class="text-xs sm:text-sm font-semibold text-[#556b52]">3. Resultado</p>
+                <p class="text-[11px] sm:text-xs text-[#556b52]">Destino e pontos creditados</p>
+            </div>
+        </div>
+
+        <!-- Grid Principal do Totem -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- CARTÃO ESQUERDO: TRIAGEM ÓPTICA (7 Colunas) -->
+            <section class="lg:col-span-7 eco-card p-5 shadow-sm space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h2 class="font-serif-editorial text-lg font-bold text-[#1a2e1a]">Triagem óptica</h2>
+                    <div class="flex items-center gap-2">
+                        <button id="btn-presence" onclick="togglePresenceSensor()" class="px-3 py-1 rounded-full border border-[#b5cca9] bg-[#edf4ea] hover:bg-[#dce9d6] text-[11px] font-medium text-[#1a2e1a] transition cursor-pointer">
+                            <span id="presence-label">Sensor de presença: desligado</span>
+                        </button>
+                        <select id="camera-select" onchange="switchCamera()" class="px-3 py-1 rounded-full border border-[#b5cca9] bg-[#edf4ea] text-[11px] font-medium text-[#1a2e1a] focus:outline-none max-w-[145px]">
+                            <option value="">Câmera padrão</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Visor da Câmera -->
+                <div class="relative w-full aspect-[16/10] bg-black rounded-xl overflow-hidden border border-[#2d3b2d] flex items-center justify-center">
+                    <video id="webcam-video" autoplay playsinline muted class="w-full h-full object-cover"></video>
+                    <canvas id="capture-canvas" class="hidden"></canvas>
+                    <canvas id="motion-canvas" width="64" height="48" class="hidden"></canvas>
+
+                    <!-- Moldura Interna Sutil -->
+                    <div class="absolute inset-3 border border-white/15 rounded-lg pointer-events-none flex flex-col justify-between p-3 scan-frame">
+                        <div class="flex justify-between items-start">
+                            <span id="yolo-hud-tag" class="bg-zinc-900/85 text-zinc-200 text-[11px] px-2.5 py-1 rounded-md font-medium">
+                                YOLOv8: pronto para triagem
+                            </span>
+                            <span id="presence-badge" class="hidden bg-[#217329] text-white text-[11px] font-bold px-2.5 py-1 rounded-md animate-pulse">
+                                Objeto detectado...
+                            </span>
+                        </div>
+                        <div class="text-center">
+                            <span class="bg-zinc-900/85 text-zinc-200 text-[11px] px-3 py-1 rounded-md">
+                                Apresente uma embalagem por vez
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Fallback se Webcam não estiver conectada -->
+                    <div id="camera-fallback" class="hidden absolute inset-0 bg-zinc-950/95 flex flex-col items-center justify-center text-center p-6">
+                        <i class="fa-solid fa-video-slash text-2xl text-zinc-400 mb-2"></i>
+                        <p class="text-xs font-semibold text-zinc-200">Câmera USB não detectada</p>
+                        <p class="text-[11px] text-zinc-400 mt-1 max-w-xs">Conecte sua webcam ou use a Demonstração guiada abaixo.</p>
+                        <button onclick="initCamera()" class="mt-3 px-3.5 py-1.5 rounded-lg bg-[#217329] text-white text-xs font-semibold hover:bg-[#1a5c20] transition cursor-pointer">
+                            Tentar novamente
+                        </button>
+                    </div>
+
+                    <!-- Loading da Análise -->
+                    <div id="ai-loading" class="hidden absolute inset-0 bg-black/80 backdrop-blur-xs flex flex-col items-center justify-center z-20">
+                        <div class="w-9 h-9 border-3 border-emerald-400 border-t-transparent rounded-full animate-spin mb-2"></div>
+                        <p class="text-xs font-semibold text-white">Analisando resíduo...</p>
+                    </div>
+                </div>
+
+                <!-- Botões Principais -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button onclick="analyzeWaste()" class="bg-[#217329] hover:bg-[#1b5e21] text-white font-semibold py-2.5 px-4 rounded-xl text-xs sm:text-sm transition shadow-xs cursor-pointer">
+                        Escanear resíduo
+                    </button>
+                    <button onclick="toggleDemoTray()" class="bg-[#edf4ea] hover:bg-[#dce9d6] text-[#1a2e1a] border border-[#217329] font-semibold py-2.5 px-4 rounded-xl text-xs sm:text-sm transition cursor-pointer">
+                        Demonstração guiada
+                    </button>
+                </div>
+
+                <!-- Gaveta de Cenários Simulados (Igual à Imagem 2) -->
+                <div id="demo-scenarios-tray" class="hidden space-y-2 pt-1">
+                    <p class="text-[11px] text-[#556b52]">Cenários simulados, sem depender de objeto na mão:</p>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="simulateScenario('clean')" class="px-3 py-1.5 rounded-lg border border-[#217329] bg-[#edf4ea] hover:bg-[#dce9d6] text-[#1a2e1a] text-xs font-medium transition cursor-pointer">
+                            Garrafa PET limpa
+                        </button>
+                        <button onclick="simulateScenario('dirty')" class="px-3 py-1.5 rounded-lg border border-[#9eb894] bg-[#edf4ea] hover:bg-[#dce9d6] text-[#1a2e1a] text-xs font-medium transition cursor-pointer">
+                            Pote com resíduo
+                        </button>
+                        <button onclick="simulateScenario('bag')" class="px-3 py-1.5 rounded-lg border border-[#9eb894] bg-[#edf4ea] hover:bg-[#dce9d6] text-[#1a2e1a] text-xs font-medium transition cursor-pointer">
+                            Saco fechado
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cartão de Resultado da Triagem (Igual à Imagem 2) -->
+                <div id="ai-result-box" class="hidden eco-subcard p-4 border border-[#9eb894] transition-all">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <span id="res-category-label" class="text-[11px] font-semibold text-[#217329]">Material limpo</span>
+                            <h3 id="res-item-name" class="font-serif-editorial text-base sm:text-lg font-bold text-[#1a2e1a] mt-0.5">Garrafa PET (Plástico)</h3>
+                            <p id="res-action-text" class="text-xs text-[#2b4229] mt-1">Destino: compartimento seco com prensagem.</p>
+                            <p id="res-reasoning" class="text-[11px] text-[#556b52] mt-0.5">Cenário de demonstração (simulado).</p>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <span id="res-points-text" class="font-serif-editorial text-xl sm:text-2xl font-bold text-[#1a2e1a]">+10 pts</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CARTÃO DIREITO: IDENTIFIQUE-SE / SALDO DO CIDADÃO (5 Colunas) -->
+            <section class="lg:col-span-5 eco-card p-5 shadow-sm">
+
+                <!-- ESTADO 1: DESLOGADO (TECLADO NUMÉRICO) -->
+                <div id="login-panel" class="space-y-3.5">
+                    <div>
+                        <h2 class="font-serif-editorial text-lg font-bold text-[#1a2e1a]">Identifique-se</h2>
+                        <p class="text-xs text-[#556b52] mt-1 leading-relaxed">
+                            Na versão final, o acesso será por biometria facial (ainda não implementada).
+                        </p>
+                    </div>
+
+                    <div class="space-y-2.5">
+                        <input id="user-id-input" type="text" placeholder="ID ou RA" class="w-full eco-input rounded-lg px-3.5 py-2.5 text-sm font-medium placeholder-[#788f74]">
+                        <input id="user-name-input" type="text" placeholder="Nome (opcional para visitante)" class="w-full eco-input rounded-lg px-3.5 py-2.5 text-sm font-medium placeholder-[#788f74]">
+                    </div>
+
+                    <!-- Teclado Numérico Limpo -->
+                    <div class="grid grid-cols-3 gap-2 pt-1">
+                        <button onclick="appendDigit('1')" class="keypad-btn py-2.5 rounded-lg font-bold text-sm cursor-pointer">1</button>
+                        <button onclick="appendDigit('2')" class="keypad-btn py-2.5 rounded-lg font-bold text-sm cursor-pointer">2</button>
+                        <button onclick="appendDigit('3')" class="keypad-btn py-2.5 rounded-lg font-bold text-sm cursor-pointer">3</button>
+                        <button onclick="appendDigit('4')" class="keypad-btn py-2.5 rounded-lg font-bold text-sm cursor-pointer">4</button>
+                        <button onclick="appendDigit('5')" class="keypad-btn py-2.5 rounded-lg font-bold text-sm cursor-pointer">5</button>
+                        <button onclick="appendDigit('6')" class="keypad-btn py-2.5 rounded-lg font-bold text-sm cursor-pointer">6</button>
+                        <button onclick="appendDigit('7')" class="keypad-btn py-2.5 rounded-lg font-bold text-sm cursor-pointer">7</button>
+                        <button onclick="appendDigit('8')" class="keypad-btn py-2.5 rounded-lg font-bold text-sm cursor-pointer">8</button>
+                        <button onclick="appendDigit('9')" class="keypad-btn py-2.5 rounded-lg font-bold text-sm cursor-pointer">9</button>
+                        <button onclick="clearDigit()" class="keypad-btn py-2.5 rounded-lg text-xs font-semibold text-red-700 cursor-pointer">Limpar</button>
+                        <button onclick="appendDigit('0')" class="keypad-btn py-2.5 rounded-lg font-bold text-sm cursor-pointer">0</button>
+                        <button onclick="loginUser()" class="bg-[#217329] hover:bg-[#1b5e21] text-white py-2.5 rounded-lg text-xs font-semibold transition cursor-pointer">Entrar</button>
+                    </div>
+
+                    <!-- Acesso Rápido da Equipe -->
+                    <div class="pt-2">
+                        <p class="text-[11px] text-[#556b52] mb-2">Acesso rápido da equipe</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="quickLogin('12526149232', 'Diego Andrade')" class="keypad-btn py-2 px-3 rounded-lg text-xs font-semibold text-[#1a2e1a] cursor-pointer">
+                                Diego Andrade
+                            </button>
+                            <button onclick="quickLogin('12526147772', 'Yago Cavden')" class="keypad-btn py-2 px-3 rounded-lg text-xs font-semibold text-[#1a2e1a] cursor-pointer">
+                                Yago Cavden
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ESTADO 2: CIDADÃO CONECTADO -->
+                <div id="user-dashboard" class="hidden space-y-5">
+                    <div class="flex items-start justify-between pb-3.5 border-b border-[#c2d6b8]">
+                        <div>
+                            <p class="text-[11px] text-[#556b52]">Cidadão conectado</p>
+                            <h3 id="display-user-name" class="font-serif-editorial text-lg font-bold text-[#1a2e1a]">Yago Cavden</h3>
+                            <p id="display-user-id" class="text-xs text-[#556b52] mt-0.5">ID 12526147772</p>
+                        </div>
+                        <button onclick="logoutUser()" class="px-3 py-1 rounded-lg border border-[#b5cca9] bg-[#edf4ea] hover:bg-[#dce9d6] text-xs font-medium text-[#1a2e1a] transition cursor-pointer">
+                            Sair
+                        </button>
+                    </div>
+
+                    <!-- Saldo de EcoPoints -->
+                    <div class="pb-4 border-b border-[#c2d6b8]">
+                        <p class="text-xs text-[#556b52]">Saldo de EcoPoints</p>
+                        <div class="flex items-baseline gap-1.5 mt-1">
+                            <span id="display-user-points" class="font-serif-editorial text-4xl font-bold text-[#217329]">0</span>
+                            <span class="text-xs font-semibold text-[#556b52]">pts</span>
+                        </div>
+                        <p class="text-xs text-[#2b4229] mt-2">
+                            Equivalente em cashback: <strong id="display-cashback">R$ 0,00</strong>
+                        </p>
+                    </div>
+
+                    <!-- Resgatar Benefícios -->
+                    <div class="space-y-3">
+                        <h4 class="text-xs font-bold text-[#1a2e1a]">Resgatar benefícios</h4>
+
+                        <div class="flex items-center justify-between gap-2">
+                            <div>
+                                <p class="text-xs font-bold text-[#1a2e1a]">Crédito transporte (R$ 5,00)</p>
+                                <p class="text-[11px] text-[#556b52]">Recarga direta no Bilhete Único</p>
+                            </div>
+                            <button onclick="redeemReward('Crédito transporte (R$ 5,00)', 200)" class="px-3 py-1.5 rounded-lg border border-[#b5cca9] bg-[#edf4ea] hover:bg-[#217329] hover:text-white text-xs font-semibold text-[#556b52] transition shrink-0 cursor-pointer">
+                                200 pts
+                            </button>
+                        </div>
+
+                        <div class="flex items-center justify-between gap-2 pt-1">
+                            <div>
+                                <p class="text-xs font-bold text-[#1a2e1a]">Vale café / cantina</p>
+                                <p class="text-[11px] text-[#556b52]">Parceiros locais e campus</p>
+                            </div>
+                            <button onclick="redeemReward('Vale café / cantina', 225)" class="px-3 py-1.5 rounded-lg border border-[#b5cca9] bg-[#edf4ea] hover:bg-[#217329] hover:text-white text-xs font-semibold text-[#556b52] transition shrink-0 cursor-pointer">
+                                225 pts
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- ABA 2: GESTÃO E ESG (VISÃO PÚBLICA DE IMPACTO E RANKING)              -->
+    <!-- ===================================================================== -->
+    <main id="tab-view-esg" class="hidden flex-grow max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+        <div>
+            <h2 class="font-serif-editorial text-2xl font-bold text-[#1a2e1a]">Gestão e ESG</h2>
+            <p class="text-xs sm:text-sm text-[#435940] mt-1">Resultados coletivos da EcoStation e o seu desempenho como cidadão.</p>
+        </div>
+
+        <!-- 3 KPIs Superiores -->
+        <div class="eco-card grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[#c2d6b8]">
+            <div class="p-5">
+                <p class="text-xs text-[#556b52]">Matéria-prima recuperada</p>
+                <p id="esg-total-weight" class="font-serif-editorial text-2xl sm:text-3xl font-bold text-[#1a2e1a] mt-1">125 g</p>
+                <p class="text-[11px] text-[#556b52] mt-1.5">Peso estimado a cada descarte confirmado no Totem</p>
+            </div>
+            <div class="p-5">
+                <p class="text-xs text-[#556b52]">Hub Lava &amp; Seca</p>
+                <p class="font-serif-editorial text-2xl sm:text-3xl font-bold text-[#1a2e1a] mt-1"><span id="esg-lavaseca-items">2</span> itens</p>
+                <p class="text-[11px] text-[#556b52] mt-1.5">Resíduos sujos ou incertos salvos do aterro</p>
+            </div>
+            <div class="p-5">
+                <p class="text-xs text-[#556b52]">Impacto em CO₂</p>
+                <p id="esg-co2-weight" class="font-serif-editorial text-2xl sm:text-3xl font-bold text-[#1a2e1a] mt-1">313 g</p>
+                <p class="text-[11px] text-[#556b52] mt-1.5">Estimativa de 2,5 kg de CO₂ evitado por kg reciclado</p>
+            </div>
+        </div>
+
+        <!-- Grade Inferior: Seu Resumo + Ranking de Cidadãos -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- Seu Resumo e Histórico (7 Colunas) -->
+            <section class="lg:col-span-7 eco-card p-5 space-y-4">
+                <div>
+                    <h3 class="font-serif-editorial text-base font-bold text-[#1a2e1a]">Seu resumo</h3>
+                    <p id="esg-user-subtitle" class="text-xs text-[#556b52]">Faça login no Totem para acompanhar seu desempenho</p>
+                </div>
+
+                <!-- Mini Caixa de 4 Estatísticas -->
+                <div class="eco-subcard grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#c2d6b8]">
+                    <div class="p-3">
+                        <p class="text-[11px] text-[#556b52]">Descartes</p>
+                        <p id="esg-my-discards" class="font-serif-editorial text-lg font-bold text-[#1a2e1a] mt-0.5">0</p>
+                    </div>
+                    <div class="p-3">
+                        <p class="text-[11px] text-[#556b52]">Pontos</p>
+                        <p id="esg-my-points" class="font-serif-editorial text-lg font-bold text-[#1a2e1a] mt-0.5">0</p>
+                    </div>
+                    <div class="p-3">
+                        <p class="text-[11px] text-[#556b52]">Peso reciclado</p>
+                        <p id="esg-my-weight" class="font-serif-editorial text-lg font-bold text-[#1a2e1a] mt-0.5">0 g</p>
+                    </div>
+                    <div class="p-3">
+                        <p class="text-[11px] text-[#556b52]">CO₂ evitado</p>
+                        <p id="esg-my-co2" class="font-serif-editorial text-lg font-bold text-[#1a2e1a] mt-0.5">0 g</p>
+                    </div>
+                </div>
+
+                <!-- Barra de Progresso Próximo Benefício -->
+                <div class="space-y-1.5">
+                    <p id="esg-next-reward-text" class="text-xs text-[#2b4229]">Próximo benefício: Crédito transporte (R$ 5,00). Faltam 200 pts.</p>
+                    <div class="w-full bg-[#c2d6b8] h-1.5 rounded-full overflow-hidden">
+                        <div id="esg-next-reward-bar" class="bg-[#217329] h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Seu Histórico -->
+                <div class="pt-2">
+                    <h4 class="text-xs font-bold text-[#1a2e1a] mb-2">Seu histórico</h4>
+                    <div id="esg-history-list" class="divide-y divide-[#c2d6b8] max-h-64 overflow-y-auto">
+                        <!-- Preenchido via JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Ranking de Cidadãos (5 Colunas) -->
+            <section class="lg:col-span-5 eco-card p-5 space-y-3">
+                <div>
+                    <h3 class="font-serif-editorial text-base font-bold text-[#1a2e1a]">Ranking de cidadãos</h3>
+                    <p class="text-xs text-[#556b52]">Quem mais recicla na EcoStation</p>
+                </div>
+                <div id="esg-ranking-list" class="divide-y divide-[#c2d6b8]">
+                    <!-- Preenchido via JS -->
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- ABA 3: ÁREA DOS GESTORES (LOGIN RESTRITO + PAINEL ADMINISTRATIVO)      -->
+    <!-- ===================================================================== -->
+    <main id="tab-view-admin" class="hidden flex-grow max-w-6xl w-full mx-auto px-4 sm:px-6 py-6">
+
+        <!-- TELA DE LOGIN RESTRITO (IGUAL À IMAGEM 4) -->
+        <div id="admin-login-box" class="min-h-[65vh] flex items-center justify-center">
+            <div class="eco-card max-w-sm w-full p-6 shadow-sm space-y-4">
+                <div>
+                    <h2 class="font-serif-editorial text-lg font-bold text-[#1a2e1a]">Área restrita aos gestores</h2>
+                    <p class="text-xs text-[#556b52] mt-0.5">Acesso apenas para Diego e Yago.</p>
+                </div>
+                <div class="space-y-2.5">
+                    <input id="admin-id-input" type="text" placeholder="ID ou RA" class="w-full eco-input rounded-lg px-3.5 py-2.5 text-sm font-medium placeholder-[#788f74]">
+                    <input id="admin-pin-input" type="password" placeholder="PIN" class="w-full eco-input rounded-lg px-3.5 py-2.5 text-sm font-medium placeholder-[#788f74]">
+                </div>
+                <button onclick="loginAdmin()" class="w-full bg-[#217329] hover:bg-[#1b5e21] text-white font-semibold py-2.5 rounded-lg text-sm transition cursor-pointer">
+                    Entrar
+                </button>
+                <p class="text-[11px] text-[#556b52] text-center">
+                    RA Diego (<code class="font-mono">12526149232</code>) ou Yago (<code class="font-mono">12526147772</code>) • PIN: <code class="font-mono">1234</code>
+                </p>
+            </div>
+        </div>
+
+        <!-- PAINEL COMPLETO DOS GESTORES (IGUAL ÀS IMAGENS 5 E 6) -->
+        <div id="admin-dashboard-content" class="hidden space-y-6">
+
+            <!-- Banner Alerta IoT (Quando Totem 01 >= 70%) -->
+            <div id="admin-iot-banner" class="hidden bg-[#f5e3c6] border border-[#dfc194] text-[#4a3210] px-4 py-3 rounded-xl text-xs sm:text-sm font-medium">
+                Alerta IoT: Totem 01 com <span id="admin-banner-percent">77</span>% de lotação. Rota de coleta otimizada enviada à Central.
+            </div>
+
+            <!-- Cabeçalho Painel dos Gestores -->
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 class="font-serif-editorial text-2xl font-bold text-[#1a2e1a]">Painel dos gestores</h2>
+                    <p id="admin-logged-subtitle" class="text-xs text-[#435940] mt-0.5">Conectado como Yago Cavden. Dados acumulados nesta máquina.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="exportCSV()" class="px-3 py-1.5 rounded-lg border border-[#b5cca9] bg-[#edf4ea] hover:bg-[#dce9d6] text-xs font-semibold text-[#1a2e1a] transition cursor-pointer">
+                        Exportar CSV
+                    </button>
+                    <button onclick="resetSystemData()" class="px-3 py-1.5 rounded-lg border border-[#b5cca9] bg-[#edf4ea] hover:bg-[#dce9d6] text-xs font-semibold text-[#1a2e1a] transition cursor-pointer">
+                        Zerar dados
+                    </button>
+                    <button onclick="logoutAdmin()" class="px-3 py-1.5 rounded-lg border border-[#b5cca9] bg-[#edf4ea] hover:bg-[#dce9d6] text-xs font-semibold text-[#1a2e1a] transition cursor-pointer">
+                        Sair
+                    </button>
+                </div>
+            </div>
+
+            <!-- 4 KPIs Principais -->
+            <div class="eco-card grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#c2d6b8]">
+                <div class="p-5">
+                    <p class="text-xs text-[#556b52]">Valor arrecadado</p>
+                    <p id="mgr-revenue" class="font-serif-editorial text-2xl sm:text-3xl font-bold text-[#1a2e1a] mt-1">R$ 0,31</p>
+                    <p class="text-[11px] text-[#556b52] mt-1.5">Estimado pelo peso e pelo preço de cada material</p>
+                </div>
+                <div class="p-5">
+                    <p class="text-xs text-[#556b52]">Peso total</p>
+                    <p id="mgr-weight" class="font-serif-editorial text-2xl sm:text-3xl font-bold text-[#1a2e1a] mt-1">125 g</p>
+                    <p class="text-[11px] text-[#556b52] mt-1.5">Todos os materiais recebidos</p>
+                </div>
+                <div class="p-5">
+                    <p class="text-xs text-[#556b52]">Lotação do Totem 01</p>
+                    <p class="font-serif-editorial text-2xl sm:text-3xl font-bold text-[#1a2e1a] mt-1"><span id="mgr-iot-percent">77</span>%</p>
+                    <p id="mgr-iot-status" class="text-[11px] text-[#556b52] mt-1.5">Coleta recomendada</p>
+                </div>
+                <div class="p-5">
+                    <p class="text-xs text-[#556b52]">Pontos em circulação</p>
+                    <p id="mgr-total-points" class="font-serif-editorial text-2xl sm:text-3xl font-bold text-[#1a2e1a] mt-1">469</p>
+                    <p class="text-[11px] text-[#556b52] mt-1.5">Soma dos saldos dos cidadãos</p>
+                </div>
+            </div>
+
+            <!-- Grid Assimétrico Inferior -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+                <!-- COLUNA ESQUERDA (7 Colunas): Lotação das lixeiras, Receita por material, Cidadãos cadastrados -->
+                <div class="lg:col-span-7 space-y-6">
+
+                    <!-- Lotação das lixeiras da cidade -->
+                    <section class="eco-card p-5 space-y-4">
+                        <div>
+                            <h3 class="font-serif-editorial text-base font-bold text-[#1a2e1a]">Lotação das lixeiras da cidade</h3>
+                            <p class="text-xs text-[#556b52]">Só o Totem 01 é real; as demais são simuladas para a demonstração.</p>
+                        </div>
+
+                        <div id="city-bins-list" class="space-y-4">
+                            <!-- Preenchido via JS -->
+                        </div>
+                    </section>
+
+                    <!-- Receita por material -->
+                    <section class="eco-card p-5 space-y-3">
+                        <div>
+                            <h3 class="font-serif-editorial text-base font-bold text-[#1a2e1a]">Receita por material</h3>
+                            <p class="text-xs text-[#556b52]">Peso estimado e preço por kg (ajustáveis no código)</p>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="border-b border-[#b5cca9] text-[#556b52]">
+                                        <th class="py-2 font-medium">Material</th>
+                                        <th class="py-2 font-medium text-right">Peso</th>
+                                        <th class="py-2 font-medium text-right">R$ por kg</th>
+                                        <th class="py-2 font-medium text-right">Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="material-revenue-table" class="divide-y divide-[#c2d6b8]">
+                                    <!-- Preenchido via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <!-- Cidadãos cadastrados -->
+                    <section class="eco-card p-5 space-y-3">
+                        <div>
+                            <h3 class="font-serif-editorial text-base font-bold text-[#1a2e1a]">Cidadãos cadastrados</h3>
+                            <p class="text-xs text-[#556b52]">Descartes e saldo de EcoPoints</p>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="border-b border-[#b5cca9] text-[#556b52]">
+                                        <th class="py-2 font-medium">ID / RA</th>
+                                        <th class="py-2 font-medium">Cidadão</th>
+                                        <th class="py-2 font-medium text-right">Descartes</th>
+                                        <th class="py-2 font-medium text-right">Saldo</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="mgr-users-table" class="divide-y divide-[#c2d6b8]">
+                                    <!-- Preenchido via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- COLUNA DIREITA (5 Colunas): Destino dos resíduos & Telemetria -->
+                <div class="lg:col-span-5 space-y-6">
+
+                    <!-- Destino dos resíduos -->
+                    <section class="eco-card p-5 space-y-4">
+                        <div>
+                            <h3 class="font-serif-editorial text-base font-bold text-[#1a2e1a]">Destino dos resíduos</h3>
+                            <p class="text-xs text-[#556b52]">Na dúvida sobre a limpeza, o item vai para lavagem.</p>
+                        </div>
+
+                        <!-- Barra Segmentada Proporcional -->
+                        <div class="w-full h-2 rounded-full bg-[#c2d6b8] overflow-hidden flex gap-0.5">
+                            <div id="bar-clean" class="bg-[#217329] h-full transition-all duration-500" style="width: 50%"></div>
+                            <div id="bar-lavaseca" class="bg-[#96611b] h-full transition-all duration-500" style="width: 33%"></div>
+                            <div id="bar-blocked" class="bg-[#b83227] h-full transition-all duration-500" style="width: 17%"></div>
+                        </div>
+
+                        <div class="divide-y divide-[#c2d6b8]">
+                            <div class="py-3 flex items-center justify-between">
+                                <div>
+                                    <p class="text-xs font-bold text-[#1a2e1a] flex items-center gap-2">
+                                        <span class="w-2 h-2 rounded-full bg-[#217329]"></span> Compartimento seco
+                                    </p>
+                                    <p class="text-[11px] text-[#556b52] pl-4">Itens limpos, com prensagem</p>
+                                </div>
+                                <span id="dest-clean-count" class="font-serif-editorial text-base font-bold text-[#1a2e1a]">3</span>
+                            </div>
+
+                            <div class="py-3 flex items-center justify-between">
+                                <div>
+                                    <p class="text-xs font-bold text-[#1a2e1a] flex items-center gap-2">
+                                        <span class="w-2 h-2 rounded-full bg-[#96611b]"></span> Hub Lava &amp; Seca
+                                    </p>
+                                    <p class="text-[11px] text-[#556b52] pl-4">Itens sujos ou de limpeza incerta</p>
+                                </div>
+                                <span id="dest-lavaseca-count" class="font-serif-editorial text-base font-bold text-[#1a2e1a]">2</span>
+                            </div>
+
+                            <div class="py-3 flex items-center justify-between">
+                                <div>
+                                    <p class="text-xs font-bold text-[#1a2e1a] flex items-center gap-2">
+                                        <span class="w-2 h-2 rounded-full bg-[#b83227]"></span> Bloqueios
+                                    </p>
+                                    <p class="text-[11px] text-[#556b52] pl-4">Sacos fechados e objetos não-resíduos</p>
+                                </div>
+                                <span id="dest-blocked-count" class="font-serif-editorial text-base font-bold text-[#1a2e1a]">1</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Telemetria -->
+                    <section class="eco-card p-5 space-y-3">
+                        <h3 class="font-serif-editorial text-base font-bold text-[#1a2e1a]">Telemetria</h3>
+                        <div id="mgr-telemetry-list" class="divide-y divide-[#c2d6b8] max-h-96 overflow-y-auto text-xs text-[#2b4229]">
+                            <!-- Preenchido via JS -->
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL DE MENSAGEM -->
+    <div id="custom-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="eco-card max-w-sm w-full p-6 text-center shadow-xl space-y-3">
+            <h3 id="modal-title" class="font-serif-editorial text-lg font-bold text-[#1a2e1a]">Aviso</h3>
+            <p id="modal-msg" class="text-xs sm:text-sm text-[#435940] leading-relaxed"></p>
+            <button onclick="closeCustomModal()" class="w-full bg-[#217329] hover:bg-[#1b5e21] text-white font-semibold py-2.5 rounded-xl text-xs sm:text-sm transition cursor-pointer">
+                Entendido
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================================
+        // ESTADO E DADOS INICIAIS (REPRODUZINDO FIELMENTE O CENÁRIO DO LAYOUT)
+        // =========================================================================
+        let soundEnabled = true;
+        let presenceActive = false;
+        let presenceInterval = null;
+        let lastFrameData = null;
+        let scanCooldown = false;
+        let currentStream = null;
+        let currentUser = null;
+        let loggedManager = null;
+
+        const usersDB = {
+            "102030": { name: "Profa. Cássia Assis", points: 150, discards: 18, weightG: 450, history: [] },
+            "12526147772": {
+                name: "Yago Cavden",
+                points: 141,
+                discards: 16,
+                weightG: 125,
+                history: [
+                    { title: "Garrafa PET (Plástico)", detail: "24/11, 07:35, 25 g", pts: "+10 pts" },
+                    { title: "Pote com resíduo (Plástico)", detail: "24/11, 07:35, 25 g", pts: "+8 pts" },
+                    { title: "Saco de lixo fechado", detail: "24/11, 07:35", pts: "0 pts" },
+                    { title: "Garrafa PET (Plástico)", detail: "24/11, 07:35, 25 g", pts: "+10 pts" },
+                    { title: "Pote com resíduo (Plástico)", detail: "24/11, 07:35, 25 g", pts: "+8 pts" }
+                ]
+            },
+            "12526149232": {
+                name: "Diego Andrade",
+                points: 138,
+                discards: 16,
+                weightG: 400,
+                history: [
+                    { title: "Garrafa PET (Plástico)", detail: "24/11, 07:30, 25 g", pts: "+10 pts" }
+                ]
+            },
+            "998877": { name: "Visitante Simpósio", points: 40, discards: 5, weightG: 125, history: [] }
+        };
+
+        const materialsConfig = {
+            "Plástico": { weightG: 125, priceKg: 2.50 },
+            "Metal": { weightG: 0, priceKg: 6.50 },
+            "Vidro": { weightG: 0, priceKg: 0.25 },
+            "Papel": { weightG: 0, priceKg: 0.40 },
+            "Orgânico": { weightG: 0, priceKg: 0.00 },
+            "Outros": { weightG: 0, priceKg: 0.00 }
+        };
+
+        const stats = {
+            totem01Percent: 77,
+            cleanCount: 3,
+            lavaSecaCount: 2,
+            blockedCount: 1,
+            telemetry: [
+                "24/11, 07:35 Yago Cavden: Garrafa PET (Plástico) (prensagem, 25 g, +10 pts)",
+                "24/11, 07:35 Yago Cavden: Pote com resíduo (Plástico) (Hub Lava & Seca, 25 g, +8 pts)",
+                "24/11, 07:35 Yago Cavden: Saco de lixo fechado (bloqueado, 0 pts)",
+                "24/11, 07:35 Yago Cavden: Garrafa PET (Plástico) (prensagem, 25 g, +10 pts)",
+                "24/11, 07:35 Yago Cavden: Pote com resíduo (Plástico) (Hub Lava & Seca, 25 g, +8 pts)",
+                "24/11, 07:35 Yago Cavden: Garrafa PET (Plástico) (prensagem, 25 g, +10 pts)"
+            ]
+        };
+
+        const simulatedBins = [
+            { name: "Av. Paulista, 1000", percent: 81 },
+            { name: "Terminal Bandeira", percent: 64 },
+            { name: "Parque Ibirapuera", percent: 38 },
+            { name: "Praça da Sé", percent: 73 }
+        ];
+
+        // =========================================================================
+        // ÁUDIO SINTÉTICO (TONE.JS)
+        // =========================================================================
+        function playSound(type) {
+            if (!soundEnabled || typeof Tone === 'undefined') return;
+            try {
+                if (Tone.context.state !== 'running') Tone.start();
+                const synth = new Tone.Synth().toDestination();
+                if (type === 'success') {
+                    synth.triggerAttackRelease("C5", "16n");
+                    setTimeout(() => synth.triggerAttackRelease("G5", "8n"), 100);
+                } else if (type === 'lavaseca') {
+                    synth.triggerAttackRelease("E4", "16n");
+                    setTimeout(() => synth.triggerAttackRelease("A4", "8n"), 100);
+                } else if (type === 'alert') {
+                    synth.triggerAttackRelease("A3", "8n");
+                } else {
+                    synth.triggerAttackRelease("C4", "32n");
+                }
+            } catch (e) {}
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('sound-label').textContent = soundEnabled ? 'Som ligado' : 'Som desligado';
+        }
+
+        // =========================================================================
+        // NAVEGAÇÃO ENTRE AS 3 ABAS
+        // =========================================================================
+        function switchTab(tab) {
+            playSound('click');
+            const views = {
+                totem: document.getElementById('tab-view-totem'),
+                esg: document.getElementById('tab-view-esg'),
+                admin: document.getElementById('tab-view-admin')
+            };
+            const navs = {
+                totem: document.getElementById('nav-totem'),
+                esg: document.getElementById('nav-esg'),
+                admin: document.getElementById('nav-admin')
+            };
+
+            Object.keys(views).forEach(k => {
+                if (k === tab) {
+                    views[k].classList.remove('hidden');
+                    navs[k].className = "h-full px-3 text-xs sm:text-sm font-semibold text-[#1a2e1a] border-b-2 border-[#217329] transition cursor-pointer";
+                } else {
+                    views[k].classList.add('hidden');
+                    navs[k].className = "h-full px-3 text-xs sm:text-sm font-medium text-[#556b52] hover:text-[#1a2e1a] border-b-2 border-transparent transition cursor-pointer";
+                }
+            });
+
+            if (tab === 'esg') renderESGView();
+            if (tab === 'admin') renderManagerDashboard();
+        }
+
+        function updateStepper(step) {
+            for (let i = 1; i <= 3; i++) {
+                const box = document.getElementById(`step-${i}-box`);
+                const title = document.getElementById(`step-${i}-title`);
+                if (i <= step) {
+                    box.className = "border-t-2 border-[#217329] pt-2.5 transition-all";
+                    title.className = "text-xs sm:text-sm font-bold text-[#1a2e1a]";
+                } else {
+                    box.className = "border-t-2 border-[#9eb894] pt-2.5 transition-all";
+                    title.className = "text-xs sm:text-sm font-semibold text-[#556b52]";
+                }
+            }
+        }
+
+        // =========================================================================
+        // CÂMERA USB & DETECTOR DE PRESENÇA
+        // =========================================================================
+        async function initCamera(deviceId = null) {
+            const video = document.getElementById('webcam-video');
+            const fallback = document.getElementById('camera-fallback');
+
+            if (currentStream) {
+                currentStream.getTracks().forEach(t => t.stop());
+            }
+
+            try {
+                const constraints = {
+                    video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: "environment" },
+                    audio: false
+                };
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = currentStream;
+                fallback.classList.add('hidden');
+                document.getElementById('yolo-hud-tag').textContent = "YOLOv8: câmera ativa";
+                await populateCameraList();
+            } catch (err) {
+                fallback.classList.remove('hidden');
+                document.getElementById('yolo-hud-tag').textContent = "YOLOv8: modo demonstração";
+            }
+        }
+
+        async function populateCameraList() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(d => d.kind === 'videoinput');
+                const select = document.getElementById('camera-select');
+                const currentVal = select.value;
+                select.innerHTML = '';
+                videoDevices.forEach((dev, idx) => {
+                    const opt = document.createElement('option');
+                    opt.value = dev.deviceId;
+                    opt.text = dev.label || `Câmera USB ${idx + 1}`;
+                    select.appendChild(opt);
+                });
+                if (currentVal) select.value = currentVal;
+            } catch (e) {}
+        }
+
+        function switchCamera() {
+            const id = document.getElementById('camera-select').value;
+            if (id) initCamera(id);
+        }
+
+        function togglePresenceSensor() {
+            playSound('click');
+            presenceActive = !presenceActive;
+            const lbl = document.getElementById('presence-label');
+            const btn = document.getElementById('btn-presence');
+
+            if (presenceActive) {
+                lbl.textContent = "Sensor de presença: ligado";
+                btn.classList.add('border-[#217329]', 'font-bold');
+                startMotionLoop();
+            } else {
+                lbl.textContent = "Sensor de presença: desligado";
+                btn.classList.remove('border-[#217329]', 'font-bold');
+                clearInterval(presenceInterval);
+                lastFrameData = null;
+            }
+        }
+
+        function startMotionLoop() {
+            const video = document.getElementById('webcam-video');
+            const mCanvas = document.getElementById('motion-canvas');
+            const mCtx = mCanvas.getContext('2d');
+
+            presenceInterval = setInterval(() => {
+                if (!presenceActive || scanCooldown || video.readyState < 2) return;
+                mCtx.drawImage(video, 0, 0, 64, 48);
+                const frame = mCtx.getImageData(0, 0, 64, 48).data;
+
+                if (lastFrameData) {
+                    let diff = 0;
+                    for (let i = 0; i < frame.length; i += 16) {
+                        diff += Math.abs(frame[i] - lastFrameData[i]);
+                    }
+                    if (diff > 3200) {
+                        scanCooldown = true;
+                        const badge = document.getElementById('presence-badge');
+                        badge.classList.remove('hidden');
+                        setTimeout(() => {
+                            badge.classList.add('hidden');
+                            analyzeWaste();
+                            setTimeout(() => { scanCooldown = false; }, 4500);
+                        }, 1000);
+                    }
+                }
+                lastFrameData = new Uint8ClampedArray(frame);
+            }, 600);
+        }
+
+        // =========================================================================
+        // LOGIN DO CIDADÃO NO TOTEM
+        // =========================================================================
+        function appendDigit(d) {
+            playSound('click');
+            const input = document.getElementById('user-id-input');
+            if (input.value.length < 15) input.value += d;
+        }
+
+        function clearDigit() {
+            playSound('click');
+            document.getElementById('user-id-input').value = '';
+        }
+
+        function toggleDemoTray() {
+            playSound('click');
+            document.getElementById('demo-scenarios-tray').classList.toggle('hidden');
+        }
+
+        function quickLogin(id, name) {
+            document.getElementById('user-id-input').value = id;
+            document.getElementById('user-name-input').value = name;
+            loginUser(name);
+        }
+
+        function loginUser(customName = null) {
+            const rawId = document.getElementById('user-id-input').value.trim();
+            const typedName = document.getElementById('user-name-input').value.trim();
+
+            if (!rawId) {
+                showModal("Identificação necessária", "Digite seu ID ou RA no teclado ao lado antes de iniciar o descarte.");
+                return;
+            }
+
+            playSound('success');
+            if (!usersDB[rawId]) {
+                usersDB[rawId] = {
+                    name: customName || typedName || `Visitante #${rawId}`,
+                    points: 0,
+                    discards: 0,
+                    weightG: 0,
+                    history: []
+                };
+            } else if (typedName && !customName) {
+                usersDB[rawId].name = typedName;
+            }
+
+            currentUser = { id: rawId };
+            updateStepper(2);
+            updateUserUI();
+        }
+
+        function logoutUser() {
+            playSound('click');
+            currentUser = null;
+            updateStepper(1);
+            document.getElementById('login-panel').classList.remove('hidden');
+            document.getElementById('user-dashboard').classList.add('hidden');
+            document.getElementById('user-id-input').value = '';
+            document.getElementById('user-name-input').value = '';
+            document.getElementById('ai-result-box').classList.add('hidden');
+        }
+
+        function updateUserUI() {
+            if (!currentUser) return;
+            document.getElementById('login-panel').classList.add('hidden');
+            document.getElementById('user-dashboard').classList.remove('hidden');
+
+            const u = usersDB[currentUser.id];
+            document.getElementById('display-user-name').textContent = u.name;
+            document.getElementById('display-user-id').textContent = `ID ${currentUser.id}`;
+            document.getElementById('display-user-points').textContent = u.points;
+            document.getElementById('display-cashback').textContent = `R$ ${(u.points * 0.10).toFixed(2).replace('.', ',')}`;
+        }
+
+        function redeemReward(name, cost) {
+            if (!currentUser) return;
+            const u = usersDB[currentUser.id];
+            if (u.points < cost) {
+                playSound('alert');
+                showModal("Saldo insuficiente", `Você possui ${u.points} pts e precisa de ${cost} pts para resgatar "${name}".`);
+                return;
+            }
+            u.points -= cost;
+            updateUserUI();
+            playSound('success');
+            const voucher = "ECO-" + Math.floor(1000 + Math.random() * 9000);
+            showModal("Benefício resgatado", `Resgate de "${name}" confirmado! Código do voucher: ${voucher}`);
+        }
+
+        // =========================================================================
+        // MOTOR DE TRIAGEM ÓPTICA (GEMINI VISION + FALLBACK LOCAL)
+        // =========================================================================
+        async function analyzeWaste() {
+            if (!currentUser) {
+                quickLogin('12526147772', 'Yago Cavden');
+            }
+
+            const video = document.getElementById('webcam-video');
+            const canvas = document.getElementById('capture-canvas');
+            const loading = document.getElementById('ai-loading');
+
+            loading.classList.remove('hidden');
+
+            let base64Image = null;
+            if (video && video.readyState >= 2) {
+                canvas.width = video.videoWidth || 640;
+                canvas.height = video.videoHeight || 480;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                base64Image = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+            }
+
+            const prompt = `Você é a visão computacional da lixeira inteligente EcoStation AI.
+Analise a imagem aplicando RIGOROSAMENTE estas 3 regras:
+1. FILTRO ANTI-PESSOA: Se houver apenas uma pessoa, rosto, mão vazia ou fundo sem nenhum objeto descartável/embalagem na frente da lente, retorne "objectDetected": false.
+2. PROTOCOLO CONTAMINAÇÃO ZERO: Só marque "isClean": true se tiver CERTEZA ABSOLUTA de que a embalagem está 100% limpa e vazia. Se houver qualquer sujeira, líquido, gordura ou dúvida visual, marque "isClean": false (encaminhado ao Hub Lava & Seca).
+3. Se for um saco plástico fechado/opaco impedindo ver o interior, marque "isClosedBag": true.
+
+Responda APENAS em JSON válido:
+{
+  "objectDetected": boolean,
+  "item": "nome curto do objeto",
+  "isRecyclable": boolean,
+  "isClean": boolean,
+  "isClosedBag": boolean,
+  "materialCategory": "Plástico | Metal | Vidro | Papel | Orgânico | Outros",
+  "reasoning": "explicação curta de 1 frase"
+}`;
+
+            try {
+                if (!base64Image) throw new Error("Fallback local");
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            role: "user",
+                            parts: [
+                                { text: prompt },
+                                { inlineData: { mimeType: "image/jpeg", data: base64Image } }
+                            ]
+                        }],
+                        generationConfig: { responseMimeType: "application/json" }
+                    })
+                });
+
+                if (!response.ok) throw new Error("Fallback local");
+                const result = await response.json();
+                const parsed = JSON.parse(result.candidates[0].content.parts[0].text);
+                loading.classList.add('hidden');
+                processAIResult(parsed, false);
+            } catch (e) {
+                setTimeout(() => {
+                    loading.classList.add('hidden');
+                    const options = ['clean', 'dirty'];
+                    simulateScenario(options[Math.floor(Math.random() * options.length)]);
+                }, 550);
+            }
+        }
+
+        function simulateScenario(type) {
+            if (!currentUser) {
+                quickLogin('12526147772', 'Yago Cavden');
+            }
+            const map = {
+                clean: {
+                    objectDetected: true,
+                    item: "Garrafa PET (Plástico)",
+                    isRecyclable: true,
+                    isClean: true,
+                    isClosedBag: false,
+                    materialCategory: "Plástico",
+                    reasoning: "Cenário de demonstração (simulado)."
+                },
+                dirty: {
+                    objectDetected: true,
+                    item: "Pote com resíduo (Plástico)",
+                    isRecyclable: true,
+                    isClean: false,
+                    isClosedBag: false,
+                    materialCategory: "Plástico",
+                    reasoning: "Limpeza incerta ou resíduo detectado. Enviado ao Hub Lava & Seca."
+                },
+                bag: {
+                    objectDetected: true,
+                    item: "Saco de lixo fechado",
+                    isRecyclable: false,
+                    isClean: false,
+                    isClosedBag: true,
+                    materialCategory: "Outros",
+                    reasoning: "Abra o saco e deposite os itens individualmente."
+                }
+            };
+            processAIResult(map[type] || map.clean, true);
+        }
+
+        function processAIResult(data, isSimulated = false) {
+            updateStepper(3);
+            const box = document.getElementById('ai-result-box');
+            const catLabel = document.getElementById('res-category-label');
+            const title = document.getElementById('res-item-name');
+            const action = document.getElementById('res-action-text');
+            const reason = document.getElementById('res-reasoning');
+            const ptsText = document.getElementById('res-points-text');
+
+            box.classList.remove('hidden');
+
+            const now = new Date();
+            const timestamp = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}, ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            const u = usersDB[currentUser.id];
+
+            if (!data.objectDetected) {
+                playSound('alert');
+                catLabel.className = "text-[11px] font-semibold text-[#556b52]";
+                catLabel.textContent = "Aguardando embalagem";
+                title.textContent = "Nenhum resíduo detectado";
+                action.textContent = "Aproxime uma garrafa, lata ou embalagem da câmera.";
+                reason.textContent = data.reasoning || "Filtro anti-pessoa ativo.";
+                ptsText.textContent = "0 pts";
+                return;
+            }
+
+            if (data.isClosedBag) {
+                playSound('alert');
+                stats.blockedCount += 1;
+                catLabel.className = "text-[11px] font-semibold text-red-700";
+                catLabel.textContent = "Descarte bloqueado";
+                title.textContent = data.item;
+                action.textContent = "Destino: bloqueado na entrada (saco fechado).";
+                reason.textContent = data.reasoning;
+                ptsText.textContent = "0 pts";
+
+                u.history.unshift({ title: data.item, detail: timestamp, pts: "0 pts" });
+                stats.telemetry.unshift(`${timestamp} ${u.name}: ${data.item} (bloqueado, 0 pts)`);
+                return;
+            }
+
+            const weightAdded = 25; // 25g por embalagem
+            const matKey = materialsConfig[data.materialCategory] ? data.materialCategory : "Plástico";
+            materialsConfig[matKey].weightG += weightAdded;
+            u.discards += 1;
+            u.weightG += weightAdded;
+            stats.totem01Percent = Math.min(100, stats.totem01Percent + 2);
+
+            if (data.isRecyclable && data.isClean) {
+                playSound('success');
+                const pts = 10;
+                u.points += pts;
+                stats.cleanCount += 1;
+
+                catLabel.className = "text-[11px] font-semibold text-[#217329]";
+                catLabel.textContent = "Material limpo";
+                title.textContent = data.item;
+                action.textContent = "Destino: compartimento seco com prensagem.";
+                reason.textContent = data.reasoning;
+                ptsText.textContent = `+${pts} pts`;
+
+                u.history.unshift({ title: data.item, detail: `${timestamp}, ${weightAdded} g`, pts: `+${pts} pts` });
+                stats.telemetry.unshift(`${timestamp} ${u.name}: ${data.item} (prensagem, ${weightAdded} g, +${pts} pts)`);
+            } else {
+                playSound('lavaseca');
+                const pts = 8;
+                u.points += pts;
+                stats.lavaSecaCount += 1;
+
+                catLabel.className = "text-[11px] font-semibold text-[#96611b]";
+                catLabel.textContent = "Protocolo Lava & Seca";
+                title.textContent = data.item;
+                action.textContent = "Destino: Hub Lava & Seca (sem prensagem inicial).";
+                reason.textContent = data.reasoning;
+                ptsText.textContent = `+${pts} pts`;
+
+                u.history.unshift({ title: data.item, detail: `${timestamp}, ${weightAdded} g`, pts: `+${pts} pts` });
+                stats.telemetry.unshift(`${timestamp} ${u.name}: ${data.item} (Hub Lava & Seca, ${weightAdded} g, +${pts} pts)`);
+            }
+
+            updateUserUI();
+        }
+
+        // =========================================================================
+        // RENDERIZAÇÃO ABA 2: GESTÃO E ESG
+        // =========================================================================
+        function getTotalSystemWeightG() {
+            return Object.values(materialsConfig).reduce((acc, m) => acc + m.weightG, 0);
+        }
+
+        function renderESGView() {
+            const totalG = getTotalSystemWeightG();
+            const totalCO2G = Math.round(totalG * 2.5);
+
+            document.getElementById('esg-total-weight').textContent = `${totalG} g`;
+            document.getElementById('esg-lavaseca-items').textContent = stats.lavaSecaCount;
+            document.getElementById('esg-co2-weight').textContent = `${totalCO2G} g`;
+
+            // Resumo do Usuário Atual (ou Yago como padrão se deslogado)
+            const activeId = currentUser ? currentUser.id : "12526147772";
+            const u = usersDB[activeId];
+
+            document.getElementById('esg-user-subtitle').textContent = u.name;
+            document.getElementById('esg-my-discards').textContent = u.discards;
+            document.getElementById('esg-my-points').textContent = u.points;
+            document.getElementById('esg-my-weight').textContent = `${u.weightG} g`;
+            document.getElementById('esg-my-co2').textContent = `${Math.round(u.weightG * 2.5)} g`;
+
+            const missing = Math.max(0, 200 - u.points);
+            const pct = Math.min(100, Math.round((u.points / 200) * 100));
+            document.getElementById('esg-next-reward-text').textContent = missing > 0
+                ? `Próximo benefício: Crédito transporte (R$ 5,00). Faltam ${missing} pts.`
+                : `Você já atingiu pontos suficientes para resgatar Crédito transporte (R$ 5,00)!`;
+            document.getElementById('esg-next-reward-bar').style.width = `${pct}%`;
+
+            // Histórico
+            const histList = document.getElementById('esg-history-list');
+            if (u.history.length === 0) {
+                histList.innerHTML = `<p class="py-3 text-xs text-[#556b52]">Nenhum descarte recente registrado nesta sessão.</p>`;
+            } else {
+                histList.innerHTML = u.history.map(h => `
+                    <div class="py-3 flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-[#1a2e1a]">${h.title}</p>
+                            <p class="text-[11px] text-[#556b52]">${h.detail}</p>
+                        </div>
+                        <span class="text-xs font-bold text-[#1a2e1a]">${h.pts}</span>
+                    </div>
+                `).join('');
+            }
+
+            // Ranking Ordenado
+            const sortedUsers = Object.entries(usersDB).sort((a, b) => b[1].points - a[1].points);
+            const rankList = document.getElementById('esg-ranking-list');
+            rankList.innerHTML = sortedUsers.map(([id, user], idx) => `
+                <div class="py-3 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-[#1a2e1a]">${idx + 1}. ${user.name}</p>
+                        ${id === activeId ? `<p class="text-[10px] text-[#556b52]">Você</p>` : ''}
+                    </div>
+                    <span class="text-xs font-bold text-[#1a2e1a]">${user.points} pts</span>
+                </div>
+            `).join('');
+        }
+
+        // =========================================================================
+        // RENDERIZAÇÃO ABA 3: ÁREA DOS GESTORES
+        // =========================================================================
+        function loginAdmin() {
+            const id = document.getElementById('admin-id-input').value.trim();
+            const pin = document.getElementById('admin-pin-input').value.trim();
+
+            if ((id === '12526149232' || id === '12526147772') && pin === '1234') {
+                playSound('success');
+                loggedManager = usersDB[id].name;
+                document.getElementById('admin-login-box').classList.add('hidden');
+                document.getElementById('admin-dashboard-content').classList.remove('hidden');
+                document.getElementById('admin-logged-subtitle').textContent = `Conectado como ${loggedManager}. Dados acumulados nesta máquina.`;
+                renderManagerDashboard();
+            } else {
+                playSound('alert');
+                showModal("Acesso negado", "Informe o RA do Diego ou do Yago e o PIN de gestor (1234).");
+            }
+        }
+
+        function logoutAdmin() {
+            playSound('click');
+            loggedManager = null;
+            document.getElementById('admin-id-input').value = '';
+            document.getElementById('admin-pin-input').value = '';
+            document.getElementById('admin-login-box').classList.remove('hidden');
+            document.getElementById('admin-dashboard-content').classList.add('hidden');
+        }
+
+        function registerCollection() {
+            playSound('success');
+            stats.totem01Percent = 10;
+            const now = new Date();
+            const timestamp = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}, ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            stats.telemetry.unshift(`${timestamp} Central: Coleta registrada no Totem 01 (lotação zerada para 10%)`);
+            renderManagerDashboard();
+            showModal("Coleta registrada", "A equipe de logística esvaziou o Totem 01. Lotação atualizada para 10%.");
+        }
+
+        function resetSystemData() {
+            playSound('click');
+            Object.keys(materialsConfig).forEach(k => materialsConfig[k].weightG = 0);
+            stats.totem01Percent = 12;
+            stats.cleanCount = 0;
+            stats.lavaSecaCount = 0;
+            stats.blockedCount = 0;
+            stats.telemetry = ["Sistema reiniciado pelo gestor."];
+            renderManagerDashboard();
+        }
+
+        function exportCSV() {
+            playSound('success');
+            let csv = "ID_RA,Cidadao,Descartes,Saldo_EcoPoints\n";
+            Object.entries(usersDB).forEach(([id, u]) => {
+                csv += `${id},"${u.name}",${u.discards},${u.points}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "ecostation_relatorio_esg.csv";
+            a.click();
+        }
+
+        function renderManagerDashboard() {
+            if (!loggedManager) return;
+
+            const totalG = getTotalSystemWeightG();
+            let totalRevenue = 0;
+            Object.values(materialsConfig).forEach(m => {
+                totalRevenue += (m.weightG / 1000) * m.priceKg;
+            });
+            const totalPoints = Object.values(usersDB).reduce((acc, u) => acc + u.points, 0);
+
+            document.getElementById('mgr-revenue').textContent = `R$ ${totalRevenue.toFixed(2).replace('.', ',')}`;
+            document.getElementById('mgr-weight').textContent = `${totalG} g`;
+            document.getElementById('mgr-iot-percent').textContent = stats.totem01Percent;
+            document.getElementById('mgr-iot-status').textContent = stats.totem01Percent >= 70 ? "Coleta recomendada" : "Operação normal";
+            document.getElementById('mgr-total-points').textContent = totalPoints;
+
+            // Alerta IoT Banner
+            const banner = document.getElementById('admin-iot-banner');
+            if (stats.totem01Percent >= 70) {
+                banner.classList.remove('hidden');
+                document.getElementById('admin-banner-percent').textContent = stats.totem01Percent;
+            } else {
+                banner.classList.add('hidden');
+            }
+
+            // Lista de Lixeiras da Cidade
+            const binsList = document.getElementById('city-bins-list');
+            const allBins = [
+                { name: "Totem 01 (EcoStation)", tag: "ao vivo", percent: stats.totem01Percent, isReal: true },
+                ...simulatedBins.map(b => ({ name: b.name, tag: "simulado", percent: b.percent, isReal: false }))
+            ];
+
+            binsList.innerHTML = allBins.map(b => {
+                const barColor = b.percent >= 70 ? "bg-[#96611b]" : "bg-[#217329]";
+                return `
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-[#1a2e1a]">${b.name}</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded-full border border-[#b5cca9] text-[#556b52]">${b.tag}</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="font-serif-editorial text-sm font-bold text-[#1a2e1a]">${b.percent}%</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="w-full bg-[#c2d6b8] h-1.5 rounded-full overflow-hidden">
+                                <div class="${barColor} h-full rounded-full transition-all duration-500" style="width: ${b.percent}%"></div>
+                            </div>
+                            ${b.isReal ? `<button onclick="registerCollection()" class="shrink-0 px-2.5 py-1 rounded-lg border border-[#217329] bg-[#edf4ea] hover:bg-[#217329] hover:text-white text-[11px] font-semibold text-[#1a2e1a] transition cursor-pointer">Registrar coleta</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Receita por Material
+            const matTable = document.getElementById('material-revenue-table');
+            let rowsHtml = Object.entries(materialsConfig).map(([mat, data]) => {
+                const val = (data.weightG / 1000) * data.priceKg;
+                return `
+                    <tr>
+                        <td class="py-2.5 font-medium text-[#1a2e1a]">${mat}</td>
+                        <td class="py-2.5 text-right text-[#2b4229]">${data.weightG} g</td>
+                        <td class="py-2.5 text-right text-[#2b4229]">${data.priceKg.toFixed(2).replace('.', ',')}</td>
+                        <td class="py-2.5 text-right text-[#1a2e1a]">R$ ${val.toFixed(2).replace('.', ',')}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            rowsHtml += `
+                <tr class="border-t border-[#9eb894] font-bold">
+                    <td class="py-2.5 text-[#1a2e1a]">Total</td>
+                    <td class="py-2.5 text-right text-[#1a2e1a]">${totalG} g</td>
+                    <td class="py-2.5"></td>
+                    <td class="py-2.5 text-right text-[#1a2e1a]">R$ ${totalRevenue.toFixed(2).replace('.', ',')}</td>
+                </tr>
+            `;
+            matTable.innerHTML = rowsHtml;
+
+            // Cidadãos Cadastrados
+            const usersTable = document.getElementById('mgr-users-table');
+            usersTable.innerHTML = Object.entries(usersDB).map(([id, u]) => `
+                <tr>
+                    <td class="py-2.5 font-mono text-[#2b4229]">${id}</td>
+                    <td class="py-2.5 font-bold text-[#1a2e1a]">${u.name}</td>
+                    <td class="py-2.5 text-right text-[#2b4229]">${u.discards}</td>
+                    <td class="py-2.5 text-right font-semibold text-[#1a2e1a]">${u.points} pts</td>
+                </tr>
+            `).join('');
+
+            // Destino dos Resíduos
+            const totalEvents = Math.max(1, stats.cleanCount + stats.lavaSecaCount + stats.blockedCount);
+            document.getElementById('dest-clean-count').textContent = stats.cleanCount;
+            document.getElementById('dest-lavaseca-count').textContent = stats.lavaSecaCount;
+            document.getElementById('dest-blocked-count').textContent = stats.blockedCount;
+
+            document.getElementById('bar-clean').style.width = `${(stats.cleanCount / totalEvents) * 100}%`;
+            document.getElementById('bar-lavaseca').style.width = `${(stats.lavaSecaCount / totalEvents) * 100}%`;
+            document.getElementById('bar-blocked').style.width = `${(stats.blockedCount / totalEvents) * 100}%`;
+
+            // Telemetria
+            const telList = document.getElementById('mgr-telemetry-list');
+            telList.innerHTML = stats.telemetry.map(item => `
+                <div class="py-2.5 leading-relaxed">${item}</div>
+            `).join('');
+        }
+
+        // =========================================================================
+        // MODAL DE AVISO
+        // =========================================================================
+        function showModal(title, msg) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-msg').textContent = msg;
+            document.getElementById('custom-modal').classList.remove('hidden');
+        }
+
+        function closeCustomModal() {
+            document.getElementById('custom-modal').classList.add('hidden');
+        }
+
+        // =========================================================================
+        // INICIALIZAÇÃO
+        // =========================================================================
+        window.onload = function() {
+            initCamera();
+        };
+    </script>
+</body>
+</html>
